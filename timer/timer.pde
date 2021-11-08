@@ -4,7 +4,11 @@ Written in Processing v. 4.0b2
 */
 
 import processing.sound.*;
-SoundFile file;
+SoundFile fileDone;
+SoundFile fileClick;
+SoundFile fileDing;
+float volumeMod;
+IntDict volumeButton;
 
 int cx, cy; // Center of timer
 float arcDiameter; // Diameter of minute arc
@@ -63,6 +67,9 @@ void setup() {
   tButtonSize.set("x", 45 );
   tButtonSize.set("y", 25 );
   findTButtonXY();
+
+  defineSounds();
+
 }
 
 void draw() {
@@ -77,6 +84,7 @@ void draw() {
   
   drawTimeButtons();
   drawResetButton();
+  drawVolumeButton();
   drawTicks();
 
   float currentTime = millis()/1000.0;
@@ -95,6 +103,7 @@ void draw() {
 
   else { // If residual is negative, i.e. recently ran out.
     reset();
+    soundDone();
   }
   textSize(20);
   fill(45);
@@ -103,7 +112,7 @@ void draw() {
 
 void mousePressed() { 
   // if mousepressed, check if its above a button.
-
+  soundClick();
   // Check time-buttons
   for (int i=0;i<tButtonVal.size();i=i+1) {
     if(overRect(tButtonX.get(i), tButtonY.get(i), tButtonSize.get("x"), tButtonSize.get("y"))){
@@ -129,135 +138,33 @@ void mousePressed() {
     colorTick.set("G", int(random(30,255)));
     colorTick.set("B", int(random(30,255)));
   }}
-}
 
-void drawTicks() {
-  fill(100,100,150);
-  textSize(25);
-  for (int i = 0; i <59; i=i+5) {
-    float tick = map(i, 0, 60, -HALF_PI, TWO_PI-HALF_PI);
-    arc(cx, cy, arcDiameter*1.11, arcDiameter*1.11, tick-1./180, tick+1./180); 
-    text(i, cx+cos(tick)*arcDiameter*0.63-13, cy+sin(tick)*arcDiameter*0.63+15);
-  }
-  // Remove inner parts
-  fill(40,40,40); 
-  noStroke(); // No outline
-  ellipse(cx, cy, arcDiameter, arcDiameter);
-}
-
-void reset() {
-  countdownT = 0;
-  startT = 0;
-  resetColors();
-}
-
-void drawCountdownMinutes() { // Draw timer countdown!
-  //float minLeft;
-  float minOriginal;
-  
-  float residualTMinutes = residualT/60.;
-  residualTSec = residualT-int(residualTMinutes)*60;
-  
-  // minutes shadow
-  fill(colorArc.get("R")-25, colorArc.get("G")-25, colorArc.get("B")-25, 50);
-  minOriginal = map(countdownT/60., 0, 60, 0, TWO_PI);
-  arc(cx, cy, arcDiameter, arcDiameter, -HALF_PI, minOriginal-HALF_PI);
-
-  // minutes current
-  fill(colorArc.get("R"), colorArc.get("G"), colorArc.get("B"));
-  textSize(56);
-  text(int(residualTMinutes)+":"+nf(int(residualTSec), 2), cx-35,70);
-  minLeft = map(residualTMinutes, 0, 60, 0, TWO_PI); // from min to rad
-  arc(cx, cy, arcDiameter, arcDiameter, -HALF_PI, minLeft-HALF_PI); // draw arc
-}
-
-void drawCountdownSeconds() {
-  // seconds current
-  float secLeft;
-  strokeWeight(3);
-  fill(colorArc.get("R")-25, colorArc.get("G")-25, colorArc.get("B")-25,50);
-  secLeft = map(residualTSec, 0, 60, 0, TWO_PI); // from min to rad
-  line(cx, cy, cx + cos(secLeft) * arcDiameter*0.5, cy + sin(secLeft) * arcDiameter*0.5);
-}
-
-boolean overRect(int x, int y, int dimX, int dimY) { 
-  // Check mouseXY in rectangle
-  if (mouseX > x && mouseX < x+dimX && mouseY > y && mouseY < y+dimY){
-    return true;
-  } else {return false;}
-}
-
-boolean overCirc(int x, int y, float diam) {
-  // Check mouseXY in circle
-  float distX = mouseX-x;
-  float distY = mouseY-y;
-  if (sqrt(sq(distX) + sq(distY)) < diam/2.){
-    return true;
-  } else {return false;}
-}
-
-boolean overArc(int x, int y, float diam, float angle) {
-  // Check mouseXY in arc/partial circle
-  float distX = x-mouseX;
-  float distY = y-mouseY;
-
-  float angleXY = atan(distY/distX)+HALF_PI;
-  if (distX > 0){angleXY = angleXY + PI;}
-
-  if (sqrt(sq(distX) + sq(distY)) < diam/2.){
-    if (angleXY < angle) {
-      return true;
-    } else { return false;}
-  } else {return false;}
-}
-
-void drawTimeButtons() {
-  // Draw the time-buttons
-  textSize(25);
-  int dimX = tButtonSize.get("x");
-  int dimY = tButtonSize.get("y");
-  for (int i=0;i<tButtonVal.size();i=i+1){
-    fill(110, 110, 110);
-    rect(tButtonX.get(i), tButtonY.get(i), dimX, dimY, 5);
-    fill(0,0,30);
-    text("+"+tButtonVal.get(i), tButtonX.get(i)+(0.1*dimX), tButtonY.get(i)+(0.88*dimY));
+  // Check volume setting
+  if (overRect(volumeButton.get("x"), volumeButton.get("y"), volumeButton.get("dimX"), volumeButton.get("dimY"))) {
+    changeVolumeMod();
   }
 }
 
-void drawResetButton(){
-  // Draws reset-button
-  int x = resetButton.get("x");
-  int y = resetButton.get("y");
-  int dimX = resetButton.get("dimX");
-  int dimY = resetButton.get("dimY");
-  textSize(25);
-  fill(110, 110, 110);
-  rect(x, y, dimX, dimY, 5);
-  fill(0,0,30);
-  text("Reset", x+(0.1*dimX), y+(0.88*dimY));
+void soundDone() {
+  fileDone.play();
 }
 
-void findTButtonXY() {
-  // Generate time-button placements
-  tButtonX = new IntList();
-  tButtonY = new IntList();
+void soundClick() {
+  fileClick.play();
+}
 
-  int x0 = int(620*0.9);
-  int y0 = int(820*0.08);
+void sound() {
+  fileDing.play();
+}
 
-  for (int i = 0; i < tButtonVal.size(); i = i+1) {
-    tButtonX.append(x0);
-    tButtonY.append(y0 + i*(tButtonSize.get("y") + 15));
+void changeVolumeMod() {
+  int y = volumeButton.get("y");
+  int dimY = volumeButton.get("dimY");
+  volumeMod = map(mouseY, y, y+dimY, 1.0, -0.2);
+  if (volumeMod<0){
+    volumeMod=0;
   }
+  fileDone.amp(0.5*volumeMod);
+  fileClick.amp(0.1*volumeMod);
+  fileDing.amp(0.5*volumeMod);
 }
-
-void resetColors() {
-  colorTick.set("R", 40); 
-  colorTick.set("G", 40);
-  colorTick.set("B", 40);
-
-  colorArc.set("R", 72); 
-  colorArc.set("G", 128);
-  colorArc.set("B", 166);
-}
-
