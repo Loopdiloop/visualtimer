@@ -6,7 +6,7 @@
 int cx, cy;
 //int[] canvasSize;
 
-float arcRadius;
+float arcDiameter;
 float timerDiameter;
 
 float startTime;
@@ -17,10 +17,10 @@ float minOriginal;
 
 float residualTime;
 
-int[] timeButtonValues;
-int[] timeButtonPlacementX;
-int[] timeButtonPlacementY;
-int[] timeButtonSize;
+IntList tButtonVal;
+IntList tButtonX;
+IntList tButtonY;
+IntList tButtonSize;
 
 void setup() {
   //int[] canvasSize = {620, 820};
@@ -28,7 +28,7 @@ void setup() {
   
   int radius = min(width, height) / 3;
   timerDiameter = radius * 2.0;
-  arcRadius = radius * 1.8;
+  arcDiameter = radius * 1.8;
   
   // Position of clock (center)
   cx = width / 2;
@@ -37,21 +37,21 @@ void setup() {
   startTime = 0; //millis()/1000.0;
   countdownTime = 0; //20 * 1000.0;
 
-  int[] timeButtonValues = { 1, 3, 5, 7 };
-  int[] timeButtonSize = { 45, 25 };
+  tButtonVal = new IntList( 1, 3, 5, 7 );
+  tButtonSize = new IntList( 45, 25 );
 
   // Generate button placenements (future in a function??)
-  int l = timeButtonValues.length;
-  int[] timeButtonPlacementX = new int[l];
-  int[] timeButtonPlacementY = new int[l];
+  //int l = tButtonVal.length;
+  //int[] timeButtonPlacementX = new int[l];
+  //int[] timeButtonPlacementY = new int[l];
 
-  int x0 = int(620*0.8);
-  int y0 = int(820*0.15);
-  for (int i = 0; i < l; i = i+1) {
-    timeButtonPlacementX[i] = x0;
-    timeButtonPlacementY[i] = y0 + i*(timeButtonSize[1] + 20);
-  }
-  //generateButtonPlacement();
+  //int x0 = int(620*0.8);
+  //int y0 = int(820*0.15);
+  //for (int i = 0; i < l; i = i+1) {
+  //  timeButtonPlacementX[i] = x0;
+  //  timeButtonPlacementY[i] = y0 + i*(tButtonSize[1] + 20);
+  //}
+  findTButtonXY();
 
 
 }
@@ -68,6 +68,8 @@ void draw() {
   ellipse(cx, cy, timerDiameter, timerDiameter);
   
   drawTimeButtons();
+  drawResetButton();
+  drawTicks();
 
   // Draw buttons for adding different times??
 
@@ -91,12 +93,37 @@ void draw() {
 }
 
 void mousePressed() { // if mousepressed, then reset start-time and add 5 min.
-  // Check if its on a button.
   
-  countdownTime += 0.2*60 ;
-  if (startTime<1e-5) {
-    startTime = millis()/1000.0;
+  // Check if its on a time-button.
+  for (int i=0;i<tButtonVal.size();i=i+1) {
+    if(overRect(tButtonX.get(i), tButtonY.get(i), tButtonSize.get(0), tButtonSize.get(1))){
+      countdownTime += tButtonVal.get(i)*60;
+      if (startTime<1e-5) {
+        startTime = millis()/1000.0;
+      }
+    }
   }
+  
+  // Check reset-button
+  if (overRect(20,20,60,30)){
+    resetTimer();
+  }
+}
+
+void drawTicks() {
+  beginShape(LINES);
+  strokeWeight(4);
+  fill(100,100,150);
+  textSize(25);
+  for (int i = 0; i <59; i=i+5) {
+    float angle = map (i, 0, 60,-HALF_PI, TWO_PI-HALF_PI);
+    float x = cx + cos(angle) * arcDiameter*0.7;
+    float y = cy + sin(angle) * arcDiameter*0.7;
+    vertex(x, y);
+    
+    text(i, x - 15, y + 13);
+    }
+  endShape();
 }
 
 void resetTimer() {
@@ -111,18 +138,18 @@ void drawCountdown() { // Draw timer countdown!
 
   fill(45, 45, 45);
   minOriginal = map(countdownTime/60., 0, 60, 0, TWO_PI);
-  arc(cx, cy, arcRadius, arcRadius, -HALF_PI, minOriginal-HALF_PI);
+  arc(cx, cy, arcDiameter, arcDiameter, -HALF_PI, minOriginal-HALF_PI);
     
   fill(72, 128, 166);
   textSize(56);
   text(int(residualTimeMinutes)+":"+nf(int(residualTimeSeconds), 2), cx-15,70);
   minLeft = map(residualTime/60., 0, 60, 0, TWO_PI); // from min to rad
-  arc(cx, cy, arcRadius, arcRadius, -HALF_PI, minLeft-HALF_PI); // draw arc
+  arc(cx, cy, arcDiameter, arcDiameter, -HALF_PI, minLeft-HALF_PI); // draw arc
 }
 
 
 
-void button(int x, int y, int dimX, int dimY, String buttonText) {
+void drawRectButton(String buttonText, int x, int y, int dimX, int dimY) {
   fill(110, 110, 110);
   rect(x, y, dimX, dimY);
   textSize(25);
@@ -137,25 +164,28 @@ boolean overRect(int x, int y, int dimX, int dimY) {
 }
 
 void drawTimeButtons() {
-  //button(500,40, 40, 40, "hello");
-  //int x = timeButtonPlacementX[0];
-  //int y = timeButtonPlacementY[0];
+  int dimX = tButtonSize.get(0);
+  int dimY = tButtonSize.get(1);
+  for (int i=0;i<tButtonVal.size();i=i+1){
+    drawRectButton(str(tButtonVal.get(i)), tButtonX.get(i), tButtonY.get(i), dimX, dimY);
+  }
+}
 
-  button(timeButtonPlacementX[0], timeButtonPlacementY[0], timeButtonPlacementX[0], timeButtonPlacementY[0], str(timeButtonValues[0]));
+void drawResetButton(){
+  drawRectButton("Reset", 20,20,60,30);
 }
 
 
-void generateButtonPlacement() {
-  int l = timeButtonValues.length;
-  int[] timeButtonPlacementX = new int[l];
-  int[] timeButtonPlacementY = new int[l];
+void findTButtonXY() {
+  //int l = tButtonVal.size();
+  tButtonX = new IntList();
+  tButtonY = new IntList();
 
   int x0 = int(620*0.8);
   int y0 = int(820*0.15);
 
-  for (int i = 0; i < l; i = i+1) {
-    timeButtonPlacementX[i] = x0;
-    timeButtonPlacementY[i] = y0 + i*(timeButtonSize[1] + 20);
+  for (int i = 0; i < tButtonVal.size(); i = i+1) {
+    tButtonX.append(x0);
+    tButtonY.append(y0 + i*(tButtonSize.get(1) + 20));
   }
-
 }
