@@ -1,13 +1,14 @@
+/* 
+Visualtimer for everyday use.
+Written in Processing v. 4.0b2
+*/
 
-
-
-
-// Global parameters
+import processing.sound.*;
+SoundFile file;
 
 int cx, cy; // Center of timer
-
-float arcDiameter; // Diam?? of minute arc
-float timerDiameter; // Diam?? of timer
+float arcDiameter; // Diameter of minute arc
+float timerDiameter; // Diameter of timer
 
 IntDict colorTick; //randomise the color of tics
 IntDict colorArc; //randomise the color of timer
@@ -15,12 +16,11 @@ IntDict colorArc; //randomise the color of timer
 float startT;
 float countdownT;
 
-//float minLeft; // Radian Minutes left to count.
+float minLeft; // Radian Minutes left to count.
 //float minOriginal; // Radian Total countdown since reset.
 
 float residualT; // Time left of countdown
 float residualTSec; // Residual time, but only seconds.
-float minLeft;
 
 // Parameters for time-buttons. Values, coord xy, size.
 IntList tButtonVal;
@@ -63,7 +63,6 @@ void setup() {
   tButtonSize.set("x", 45 );
   tButtonSize.set("y", 25 );
   findTButtonXY();
-
 }
 
 void draw() {
@@ -98,13 +97,13 @@ void draw() {
     reset();
   }
   textSize(20);
-  fill(40);
+  fill(45);
   text("Visualtimer by @loopdiloop", cx, 2*cy-30);
 }
 
 void mousePressed() { 
   // if mousepressed, check if its above a button.
-  
+
   // Check time-buttons
   for (int i=0;i<tButtonVal.size();i=i+1) {
     if(overRect(tButtonX.get(i), tButtonY.get(i), tButtonSize.get("x"), tButtonSize.get("y"))){
